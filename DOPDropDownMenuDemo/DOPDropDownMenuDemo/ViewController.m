@@ -43,11 +43,20 @@
                            [NSString stringWithFormat:@"%@_%@_%@",self.citys[2],self.ages[2],self.genders[2]]];
     self.results = self.originalArray;
     
-    DOPDropDownMenu *menu = [[DOPDropDownMenu alloc] initWithOrigin:CGPointMake(0, 64) andHeight:40];
-    menu.dataSource = self;
-    menu.delegate = self;
-    [self.view addSubview:menu];
-    self.menu = menu;
+    DOPDropDownMenu *dropDownMenu = [[DOPDropDownMenu alloc] initWithOrigin:CGPointMake(0, 64) andHeight:40];
+    dropDownMenu.dataSource = self;
+    dropDownMenu.delegate = self;
+    dropDownMenu.indicatorColor = [UIColor blackColor];//箭头颜色
+    dropDownMenu.indicatorColorSelected = [UIColor colorWithRed:253/255.0 green:152/255.0 blue:64/255.0 alpha:1];
+    dropDownMenu.separatorColor = [UIColor grayColor];//分割线颜色
+    dropDownMenu.textColor = [UIColor blackColor];//选项卡文字颜色
+    dropDownMenu.textColorSelected = [UIColor colorWithRed:253/255.0 green:152/255.0 blue:64/255.0 alpha:1];
+    dropDownMenu.columnSelectedColor = [UIColor clearColor];
+    dropDownMenu.rowTextColor = [UIColor blackColor];//行文字颜色
+    dropDownMenu.rowTextColorSelected = [UIColor colorWithRed:253/255.0 green:152/255.0 blue:64/255.0 alpha:1];
+    //    dropDownMenu.isChangeMenuTitle = YES;
+    [self.view addSubview:dropDownMenu];
+    self.menu = dropDownMenu;
     
     self.tableView = ({
     CGSize screenSize = [UIScreen mainScreen].bounds.size;
@@ -69,6 +78,10 @@
 
 - (NSInteger)numberOfColumnsInMenu:(DOPDropDownMenu *)menu {
     return 3;
+}
+
+- (NSString *)menu:(DOPDropDownMenu *)menu titleForColumnAtIndex:(NSInteger)index{
+    return @"test";
 }
 
 - (NSInteger)menu:(DOPDropDownMenu *)menu numberOfRowsInColumn:(NSInteger)column {

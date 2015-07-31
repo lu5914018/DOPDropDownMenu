@@ -27,7 +27,6 @@
 #pragma mark - menu implementation
 
 @interface DOPDropDownMenu ()
-@property (nonatomic, assign) NSInteger currentSelectedMenudIndex;
 @property (nonatomic, assign) BOOL show;
 @property (nonatomic, assign) NSInteger numOfMenu;
 @property (nonatomic, assign) CGPoint origin;
@@ -39,6 +38,7 @@
 @property (nonatomic, copy) NSArray *titles;
 @property (nonatomic, copy) NSArray *indicators;
 @property (nonatomic, copy) NSArray *bgLayers;
+@property (nonatomic, copy) NSMutableArray *selectedRowArray;
 @end
 
 
@@ -52,11 +52,32 @@
     return _indicatorColor;
 }
 
+- (UIColor *)indicatorColorSelected {
+    if (!_indicatorColorSelected) {
+        _indicatorColorSelected = [UIColor blackColor];
+    }
+    return _indicatorColorSelected;
+}
+
 - (UIColor *)textColor {
     if (!_textColor) {
         _textColor = [UIColor blackColor];
     }
     return _textColor;
+}
+
+- (UIColor *)textColorSelected {
+    if (!_textColorSelected) {
+        _textColorSelected = [UIColor blackColor];
+    }
+    return _textColorSelected;
+}
+
+- (UIColor *)columnSelectedColor {
+    if (!_columnSelectedColor) {
+        _columnSelectedColor = [UIColor blackColor];
+    }
+    return _columnSelectedColor;
 }
 
 - (UIColor *)separatorColor {
@@ -66,8 +87,29 @@
     return _separatorColor;
 }
 
+- (UIColor *)rowTextColor {
+    if (!_rowTextColor) {
+        _rowTextColor = [UIColor blackColor];
+    }
+    return _rowTextColor;
+}
+
+- (UIColor *)rowTextColorSelected {
+    if (!_rowTextColorSelected) {
+        _rowTextColorSelected = [UIColor blackColor];
+    }
+    return _rowTextColorSelected;
+}
+
 - (NSString *)titleForRowAtIndexPath:(DOPIndexPath *)indexPath {
     return [self.dataSource menu:self titleForRowAtIndexPath:indexPath];
+}
+
+- (NSMutableArray *)selectedRowArray{
+    if (!_selectedRowArray) {
+        _selectedRowArray = [[NSMutableArray alloc] init];
+    }
+    return _selectedRowArray;
 }
 
 #pragma mark - setter
@@ -82,6 +124,7 @@
     }
     
     CGFloat textLayerInterval = self.frame.size.width / ( _numOfMenu * 2);
+    CGFloat separatorLineInterval = self.frame.size.width / _numOfMenu;
     CGFloat bgLayerInterval = self.frame.size.width / _numOfMenu;
     
     NSMutableArray *tempTitles = [[NSMutableArray alloc] initWithCapacity:_numOfMenu];
@@ -96,7 +139,9 @@
         [tempBgLayers addObject:bgLayer];
         //title
         CGPoint titlePosition = CGPointMake( (i * 2 + 1) * textLayerInterval , self.frame.size.height / 2);
-        NSString *titleString = [_dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:i row:0]];
+//        NSString *titleString = [_dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:i row:0]];
+        NSString *titleString = [_dataSource menu:self titleForColumnAtIndex:i];
+        [self.selectedRowArray addObject:@"0"];//默认是选中第一项,这里生成column的。
         CATextLayer *title = [self createTextLayerWithNSString:titleString withColor:self.textColor andPosition:titlePosition];
         [self.layer addSublayer:title];
         [tempTitles addObject:title];
@@ -104,6 +149,13 @@
         CAShapeLayer *indicator = [self createIndicatorWithColor:self.indicatorColor andPosition:CGPointMake(titlePosition.x + title.bounds.size.width / 2 + 8, self.frame.size.height / 2)];
         [self.layer addSublayer:indicator];
         [tempIndicators addObject:indicator];
+        //separator
+        if (i != _numOfMenu - 1) {
+            CGPoint separatorPosition = CGPointMake((i + 1) * separatorLineInterval, self.frame.size.height / 2);
+            CAShapeLayer *separator = [self createSeparatorLineWithColor:self.separatorColor andPosition:separatorPosition];
+            [self.layer addSublayer:separator];
+        }
+        
     }
     _titles = [tempTitles copy];
     _indicators = [tempIndicators copy];
@@ -116,7 +168,7 @@
     self = [self initWithFrame:CGRectMake(origin.x, origin.y, screenSize.width, height)];
     if (self) {
         _origin = origin;
-        _currentSelectedMenudIndex = -1;
+        _previousSelectedMenudIndex = -1;
         _show = NO;
         
         //tableView init
@@ -148,11 +200,12 @@
 #pragma mark - init support
 - (CALayer *)createBgLayerWithColor:(UIColor *)color andPosition:(CGPoint)position {
     CALayer *layer = [CALayer layer];
+    
     layer.position = position;
     layer.bounds = CGRectMake(0, 0, self.frame.size.width/self.numOfMenu, self.frame.size.height-1);
-    layer.backgroundColor = color.CGColor;
 //    NSLog(@"bglayer bounds:%@",NSStringFromCGRect(layer.bounds));
 //    NSLog(@"bglayer position:%@", NSStringFromCGPoint(position));
+    layer.backgroundColor = color.CGColor;
     
     return layer;
 }
@@ -172,10 +225,29 @@
     
     CGPathRef bound = CGPathCreateCopyByStrokingPath(layer.path, nil, layer.lineWidth, kCGLineCapButt, kCGLineJoinMiter, layer.miterLimit);
     layer.bounds = CGPathGetBoundingBox(bound);
-    CGPathRelease(bound);
     
     layer.position = point;
     
+    return layer;
+}
+
+- (CAShapeLayer *)createSeparatorLineWithColor:(UIColor *)color andPosition:(CGPoint)point {
+    CAShapeLayer *layer = [CAShapeLayer new];
+    
+    UIBezierPath *path = [UIBezierPath new];
+    [path moveToPoint:CGPointMake(160,0)];
+    [path addLineToPoint:CGPointMake(160, 20)];
+    
+    layer.path = path.CGPath;
+    layer.lineWidth = 1.0;
+    layer.strokeColor = color.CGColor;
+    
+    CGPathRef bound = CGPathCreateCopyByStrokingPath(layer.path, nil, layer.lineWidth, kCGLineCapButt, kCGLineJoinMiter, layer.miterLimit);
+    layer.bounds = CGPathGetBoundingBox(bound);
+    
+    layer.position = point;
+//    NSLog(@"separator position: %@",NSStringFromCGPoint(point));
+//    NSLog(@"separator bounds: %@",NSStringFromCGRect(layer.bounds));
     return layer;
 }
 
@@ -211,40 +283,55 @@
     CGPoint touchPoint = [paramSender locationInView:self];
     //calculate index
     NSInteger tapIndex = touchPoint.x / (self.frame.size.width / _numOfMenu);
- 
+    [self menuSelectedWithIndex:tapIndex];
+    self.currentTapedMenudIndex = tapIndex;
+}
+
+- (void)menuSelectedWithIndex:(NSInteger)index
+{
+    if (self.delegate && [self.delegate respondsToSelector:@selector(menu:didSelectColumnAtIndex:)]) {
+        [self.delegate menu:self didSelectColumnAtIndex:index];
+    }
+    
     for (int i = 0; i < _numOfMenu; i++) {
-        if (i != tapIndex) {
+        if (i != index) {
             [self animateIndicator:_indicators[i] Forward:NO complete:^{
                 [self animateTitle:_titles[i] show:NO complete:^{
                     
                 }];
             }];
             [(CALayer *)self.bgLayers[i] setBackgroundColor:[UIColor whiteColor].CGColor];
+            [(CATextLayer *)self.titles[i] setForegroundColor:_textColor.CGColor];
+            [(CAShapeLayer *)self.indicators[i] setFillColor:_indicatorColor.CGColor];
         }
     }
     
-    if (tapIndex == _currentSelectedMenudIndex && _show) {
-        [self animateIdicator:_indicators[_currentSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_currentSelectedMenudIndex] forward:NO complecte:^{
-            _currentSelectedMenudIndex = tapIndex;
+    if (index == _previousSelectedMenudIndex && _show) {
+        [self animateIdicator:_indicators[_previousSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_previousSelectedMenudIndex] forward:NO complecte:^{
+            _previousSelectedMenudIndex = index;
             _show = NO;
         }];
-        [(CALayer *)self.bgLayers[tapIndex] setBackgroundColor:[UIColor whiteColor].CGColor];
+        [(CALayer *)self.bgLayers[index] setBackgroundColor:[UIColor whiteColor].CGColor];
+        [(CATextLayer *)self.titles[index] setForegroundColor:_textColor.CGColor];
+        [(CAShapeLayer *)self.indicators[index] setFillColor:_indicatorColor.CGColor];
     } else {
-        _currentSelectedMenudIndex = tapIndex;
+        _previousSelectedMenudIndex = index;
         [_tableView reloadData];
-        [self animateIdicator:_indicators[tapIndex] background:_backGroundView tableView:_tableView title:_titles[tapIndex] forward:YES complecte:^{
+        [self animateIdicator:_indicators[index] background:_backGroundView tableView:_tableView title:_titles[index] forward:YES complecte:^{
             _show = YES;
         }];
-        [(CALayer *)self.bgLayers[tapIndex] setBackgroundColor:[UIColor colorWithWhite:0.9 alpha:1.0].CGColor];
+        [(CALayer *)self.bgLayers[index] setBackgroundColor:_columnSelectedColor.CGColor];
+        [(CATextLayer *)self.titles[index] setForegroundColor:_textColorSelected.CGColor];
+        [(CAShapeLayer *)self.indicators[index] setFillColor:_indicatorColorSelected.CGColor];
     }
 }
 
 - (void)backgroundTapped:(UITapGestureRecognizer *)paramSender
 {
-    [self animateIdicator:_indicators[_currentSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_currentSelectedMenudIndex] forward:NO complecte:^{
+    [self animateIdicator:_indicators[_previousSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_previousSelectedMenudIndex] forward:NO complecte:^{
         _show = NO;
     }];
-    [(CALayer *)self.bgLayers[_currentSelectedMenudIndex] setBackgroundColor:[UIColor whiteColor].CGColor];
+    [(CALayer *)self.bgLayers[_previousSelectedMenudIndex] setBackgroundColor:[UIColor whiteColor].CGColor];
 }
 
 #pragma mark - animation method
@@ -274,7 +361,7 @@
         [view.superview addSubview:self];
         
         [UIView animateWithDuration:0.2 animations:^{
-            view.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
+            view.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.5];//设置空白处黑色的深度
         }];
     } else {
         [UIView animateWithDuration:0.2 animations:^{
@@ -288,17 +375,17 @@
 
 - (void)animateTableView:(UITableView *)tableView show:(BOOL)show complete:(void(^)())complete {
     if (show) {
-        tableView.frame = CGRectMake(self.origin.x, self.frame.origin.y + self.frame.size.height, self.frame.size.width, 0);
+        tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, 0);
         [self.superview addSubview:tableView];
         
         CGFloat tableViewHeight = ([tableView numberOfRowsInSection:0] > 5) ? (5 * tableView.rowHeight) : ([tableView numberOfRowsInSection:0] * tableView.rowHeight);
         
         [UIView animateWithDuration:0.2 animations:^{
-            _tableView.frame = CGRectMake(self.origin.x, self.frame.origin.y + self.frame.size.height, self.frame.size.width, tableViewHeight);
+            _tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, tableViewHeight);
         }];
     } else {
         [UIView animateWithDuration:0.2 animations:^{
-            _tableView.frame = CGRectMake(self.origin.x, self.frame.origin.y + self.frame.size.height, self.frame.size.width, 0);
+            _tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, 0);
         } completion:^(BOOL finished) {
             [tableView removeFromSuperview];
         }];
@@ -332,7 +419,7 @@
     NSAssert(self.dataSource != nil, @"menu's dataSource shouldn't be nil");
     if ([self.dataSource respondsToSelector:@selector(menu:numberOfRowsInColumn:)]) {
         return [self.dataSource menu:self
-                numberOfRowsInColumn:self.currentSelectedMenudIndex];
+                numberOfRowsInColumn:self.previousSelectedMenudIndex];
     } else {
         NSAssert(0 == 1, @"required method of dataSource protocol should be implemented");
         return 0;
@@ -348,16 +435,18 @@
     }
     NSAssert(self.dataSource != nil, @"menu's datasource shouldn't be nil");
     if ([self.dataSource respondsToSelector:@selector(menu:titleForRowAtIndexPath:)]) {
-        cell.textLabel.text = [self.dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.currentSelectedMenudIndex row:indexPath.row]];
+        cell.textLabel.text = [self.dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.previousSelectedMenudIndex row:indexPath.row]];
     } else {
         NSAssert(0 == 1, @"dataSource method needs to be implemented");
     }
     cell.backgroundColor = [UIColor whiteColor];
     cell.textLabel.font = [UIFont systemFontOfSize:14.0];
     cell.separatorInset = UIEdgeInsetsZero;
-    
-    if ([cell.textLabel.text isEqualToString: [(CATextLayer *)[_titles objectAtIndex:_currentSelectedMenudIndex] string]]) {
+    cell.textLabel.textColor = _rowTextColor;
+    if (indexPath.row == [[self.selectedRowArray objectAtIndex:self.currentTapedMenudIndex] intValue]) {
+        //menu的文字与当前cell的文字相同的时候，设置cell的背景色变深。
         cell.backgroundColor = [UIColor colorWithWhite:0.9 alpha:1.0];
+        cell.textLabel.textColor = _rowTextColorSelected;
     }
     
     return cell;
@@ -365,29 +454,44 @@
 
 #pragma mark - tableview delegate
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    [self confiMenuWithSelectRow:indexPath.row];
     if (self.delegate || [self.delegate respondsToSelector:@selector(menu:didSelectRowAtIndexPath:)]) {
-        [self.delegate menu:self didSelectRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.currentSelectedMenudIndex row:indexPath.row]];
+        [self confiMenuWithSelectRow:indexPath.row];
+        [self.delegate menu:self didSelectRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.previousSelectedMenudIndex row:indexPath.row]];
+    } else {
+        //TODO: delegate is nil
     }
+    //使选中的高亮
+    UITableViewCell *cellSelected = [tableView cellForRowAtIndexPath:indexPath];
+    cellSelected.textLabel.textColor = _rowTextColorSelected;
+    
+    //使之前选中的取消高亮
+    int row = [[self.selectedRowArray objectAtIndex:self.currentTapedMenudIndex] intValue];
+    NSIndexPath *unSelectedIndexPath = [NSIndexPath indexPathForRow:row inSection:indexPath.section];
+    UITableViewCell *cellUnSelected = [tableView cellForRowAtIndexPath:unSelectedIndexPath];
+    cellUnSelected.textLabel.textColor = _rowTextColor;
+    
+    [self.selectedRowArray replaceObjectAtIndex:self.currentTapedMenudIndex withObject:@(indexPath.row)];//加入数组
 }
 
 - (void)confiMenuWithSelectRow:(NSInteger)row {
-    CATextLayer *title = (CATextLayer *)_titles[_currentSelectedMenudIndex];
-    title.string = [self.dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.currentSelectedMenudIndex row:row]];
+    CATextLayer *title = (CATextLayer *)_titles[_previousSelectedMenudIndex];
+    if (self.isChangeMenuTitle) {
+        title.string = [self.dataSource menu:self titleForRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.previousSelectedMenudIndex row:row]];
+    }
     
-    [self animateIdicator:_indicators[_currentSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_currentSelectedMenudIndex] forward:NO complecte:^{
+    [self animateIdicator:_indicators[_previousSelectedMenudIndex] background:_backGroundView tableView:_tableView title:_titles[_previousSelectedMenudIndex] forward:NO complecte:^{
         _show = NO;
     }];
-    [(CALayer *)self.bgLayers[_currentSelectedMenudIndex] setBackgroundColor:[UIColor whiteColor].CGColor];
+    [(CALayer *)self.bgLayers[_previousSelectedMenudIndex] setBackgroundColor:[UIColor whiteColor].CGColor];
     
-    CAShapeLayer *indicator = (CAShapeLayer *)_indicators[_currentSelectedMenudIndex];
+    CAShapeLayer *indicator = (CAShapeLayer *)_indicators[_previousSelectedMenudIndex];
     indicator.position = CGPointMake(title.position.x + title.frame.size.width / 2 + 8, indicator.position.y);
 }
+
 
 - (void)dismiss {
     [self backgroundTapped:nil];
 }
-
 
 
 
