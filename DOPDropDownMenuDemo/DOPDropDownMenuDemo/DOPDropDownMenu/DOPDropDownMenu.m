@@ -460,15 +460,16 @@
     } else {
         //TODO: delegate is nil
     }
-    //使选中的高亮
-    UITableViewCell *cellSelected = [tableView cellForRowAtIndexPath:indexPath];
-    cellSelected.textLabel.textColor = _rowTextColorSelected;
-    
     //使之前选中的取消高亮
     int row = [[self.selectedRowArray objectAtIndex:self.currentTapedMenudIndex] intValue];
     NSIndexPath *unSelectedIndexPath = [NSIndexPath indexPathForRow:row inSection:indexPath.section];
     UITableViewCell *cellUnSelected = [tableView cellForRowAtIndexPath:unSelectedIndexPath];
     cellUnSelected.textLabel.textColor = _rowTextColor;
+    cellUnSelected.backgroundColor = [UIColor whiteColor];
+    
+    //使选中的高亮
+    UITableViewCell *cellSelected = [tableView cellForRowAtIndexPath:indexPath];
+    cellSelected.textLabel.textColor = _rowTextColorSelected;
     
     [self.selectedRowArray replaceObjectAtIndex:self.currentTapedMenudIndex withObject:@(indexPath.row)];//加入数组
 }
