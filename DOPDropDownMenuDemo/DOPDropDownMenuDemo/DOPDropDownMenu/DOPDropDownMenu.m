@@ -38,7 +38,6 @@
 @property (nonatomic, copy) NSArray *titles;
 @property (nonatomic, copy) NSArray *indicators;
 @property (nonatomic, copy) NSArray *bgLayers;
-@property (nonatomic, copy) NSMutableArray *selectedRowArray;
 @end
 
 
@@ -454,12 +453,8 @@
 
 #pragma mark - tableview delegate
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (self.delegate || [self.delegate respondsToSelector:@selector(menu:didSelectRowAtIndexPath:)]) {
-        [self confiMenuWithSelectRow:indexPath.row];
-        [self.delegate menu:self didSelectRowAtIndexPath:[DOPIndexPath indexPathWithCol:self.previousSelectedMenudIndex row:indexPath.row]];
-    } else {
-        //TODO: delegate is nil
-    }
+    DOPIndexPath *dopIndexPath = [DOPIndexPath indexPathWithCol:self.previousSelectedMenudIndex row:indexPath.row];
+    
     //使之前选中的取消高亮
     int row = [[self.selectedRowArray objectAtIndex:self.currentTapedMenudIndex] intValue];
     NSIndexPath *unSelectedIndexPath = [NSIndexPath indexPathForRow:row inSection:indexPath.section];
@@ -471,7 +466,17 @@
     UITableViewCell *cellSelected = [tableView cellForRowAtIndexPath:indexPath];
     cellSelected.textLabel.textColor = _rowTextColorSelected;
     
-    [self.selectedRowArray replaceObjectAtIndex:self.currentTapedMenudIndex withObject:@(indexPath.row)];//加入数组
+    //加入数组
+    [self.selectedRowArray replaceObjectAtIndex:self.currentTapedMenudIndex withObject:@(indexPath.row)];
+    
+    self.selectedColumn = dopIndexPath.column;
+    self.selectedrow = dopIndexPath.row;
+    if (self.delegate || [self.delegate respondsToSelector:@selector(menu:didSelectRowAtIndexPath:)]) {
+        [self confiMenuWithSelectRow:indexPath.row];
+        [self.delegate menu:self didSelectRowAtIndexPath:dopIndexPath];
+    } else {
+        //TODO: delegate is nil
+    }
 }
 
 - (void)confiMenuWithSelectRow:(NSInteger)row {
@@ -490,9 +495,7 @@
 }
 
 
-- (void)dismiss {
-    [self backgroundTapped:nil];
-}
+
 
 
 

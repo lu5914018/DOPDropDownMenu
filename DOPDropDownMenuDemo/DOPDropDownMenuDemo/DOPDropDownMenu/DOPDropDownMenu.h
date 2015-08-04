@@ -57,6 +57,10 @@
 @property (nonatomic, assign) BOOL      isChangeMenuTitle;
 @property (nonatomic, assign) NSInteger currentTapedMenudIndex;//此变量是点击menu时设置的。
 @property (nonatomic, assign) NSInteger previousSelectedMenudIndex;//下次点击menu后才设置的,用于记录前一个menu
+
+@property (nonatomic, copy)   NSMutableArray *selectedRowArray;
+@property (nonatomic, assign) NSInteger selectedColumn;
+@property (nonatomic, assign) NSInteger selectedrow;
 /**
  *  the width of menu will be set to screen width defaultly
  *
@@ -67,9 +71,6 @@
  */
 - (instancetype)initWithOrigin:(CGPoint)origin andHeight:(CGFloat)height;
 - (NSString *)titleForRowAtIndexPath:(DOPIndexPath *)indexPath;
-
-//programmatically dismiss
-- (void)dismiss;
 
 /**
  *  此方法需在DOPDropDownMenu加入view作为子视图后调用才可以正常作用。
