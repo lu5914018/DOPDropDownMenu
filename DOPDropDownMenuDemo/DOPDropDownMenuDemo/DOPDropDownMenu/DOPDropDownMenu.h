@@ -55,6 +55,8 @@
 @property (nonatomic, strong) UIColor *rowTextColorSelected;//行文字选中颜色
 
 @property (nonatomic, assign) BOOL      isChangeMenuTitle;
+@property (nonatomic, assign) BOOL      isShowAllRowInTableView;//用于判断是显示一定数量的row还是显示完整row。default is Yes
+@property (nonatomic, assign) NSInteger showRowInTableView;//用于不显示完整row时,定义显示多少行。default is 5
 @property (nonatomic, assign) NSInteger currentTapedMenudIndex;//此变量是点击menu时设置的。
 @property (nonatomic, assign) NSInteger previousSelectedMenudIndex;//下次点击menu后才设置的,用于记录前一个menu
 

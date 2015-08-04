@@ -176,6 +176,10 @@
         _tableView.dataSource = self;
         _tableView.delegate = self;
         
+        //tableView config
+        self.isShowAllRowInTableView = YES;
+        self.showRowInTableView = 5;
+        
         //self tapped
         self.backgroundColor = [UIColor whiteColor];
         UIGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(menuTapped:)];
@@ -377,10 +381,19 @@
         tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, 0);
         [self.superview addSubview:tableView];
         
-        CGFloat tableViewHeight = ([tableView numberOfRowsInSection:0] > 5) ? (5 * tableView.rowHeight) : ([tableView numberOfRowsInSection:0] * tableView.rowHeight);
+        CGFloat tableViewHeight;
+        if (self.isShowAllRowInTableView == YES) {
+            tableViewHeight =[tableView numberOfRowsInSection:0] * tableView.rowHeight;
+        }else{
+            tableViewHeight = (self.showRowInTableView * tableView.rowHeight);
+        }
         
         [UIView animateWithDuration:0.2 animations:^{
-            _tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, tableViewHeight);
+            if (tableViewHeight > [UIScreen mainScreen].bounds.size.height - (self.frame.origin.y + self.frame.size.height)) {
+                _tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, [UIScreen mainScreen].bounds.size.height - (self.frame.origin.y + self.frame.size.height));
+            }else{
+                _tableView.frame = CGRectMake(0, self.frame.origin.y + self.frame.size.height, self.frame.size.width, tableViewHeight);
+            }
         }];
     } else {
         [UIView animateWithDuration:0.2 animations:^{
